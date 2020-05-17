@@ -22,5 +22,13 @@ These are the variables that should be added to your 7777-config.yml. Or simply 
 | zdb_distance | Distance needed to count the SCP-049-2 a part of the group | `4` (Also recommend `3.8`) |
 | zdb_lock | Should the door be destroyed (or locked if can't be destroyed)? | `true` |
 
+### Planned Changes
+- More permissions for each command and their arguments.
+- OnSpawn messages as 049-2 to clarify their new ability.
+- Set-config command to easily modify config in-game.
+- Release as an official EXILED plugin.
+- Add more config options.
+- Plan plans to plan changes.
+
 ### That'd be all
 Thanks for passing by, have a nice day! :)
