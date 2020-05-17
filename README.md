@@ -11,7 +11,7 @@ As with any EXILED plugin, you must place the ZombieDoorBreaking.dll file inside
 | `zdb toggle` | Toggles this plugin | `zdb.command` |
 | `zdb reload` | Reloads configuration values to match your config-file | `zdb.command` |
 
-**TIP:** Use `zdb.*` to receive all permissions.
+**TIP:** Using the permission: `zdb.*` gives you all of the permissions stated above.
 
 ### Configuration
 These are the variables that should be added to your 7777-config.yml. Or simply download/copy the [config-file example](https://github.com/SebasCapo/ZombieDoorBreaking/blob/master/Examples/7777-config.yml)
