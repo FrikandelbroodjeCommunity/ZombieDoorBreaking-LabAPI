@@ -17,21 +17,47 @@ namespace ZombieDoorBreaking {
 
         public Plugin plugin;
 
-        public EventHandlers( Plugin plugin ) {
+        public EventHandlers(Plugin plugin) {
             this.plugin = plugin;
         }
+
         public void DoorInteract(ref DoorInteractionEvent ev) {
             try {
-                if(ev.Player.GetRole() == RoleType.Scp0492 && ev.Door.doorType == 2) {
-                    if(plugin.breakDoor && ev.Door.NetworkisOpen)
+                if(ev.Player.GetRole() == RoleType.Scp0492 && ev.Door.doorType == 2 && !ev.Door.Networklocked) {
+                    if((!plugin.canClose && ev.Door.NetworkisOpen) 
+                        || (plugin.griefProtection && (ev.Door.DoorName.EqualsIgnoreCase("106_PRIMARY") 
+                        || ev.Door.DoorName.EqualsIgnoreCase("106_SECONDARY") || ev.Door.DoorName.EqualsIgnoreCase("106_BOTTOM"))))
                         return;
                     int amount = 0;
                     foreach(ReferenceHub hub in Player.GetHubs(RoleType.Scp0492))
-                        if(Vector3.Distance(ev.Player.GetPosition(), hub.GetPosition()) <= plugin.distanceNeeded)
+                        if(Vector3.Distance(ev.Player.GetPosition(), hub.GetPosition()) <= plugin.distanceNeeded) {
                             amount++;
+                        }
                     if(amount >= plugin.amountNeeded) {
+                        Door d = ev.Door;
                         ev.Allow = true;
-                        ev.Door.DestroyDoor(plugin.breakDoor);
+                        if(plugin.currentMode != Mode.OPEN && !ev.Door.NetworkisOpen && plugin.canClose) {
+                            d.DestroyDoor(plugin.currentMode == Mode.LOCK_BREAK);
+                            if(plugin.forceDestroy) {
+                                d.destroyed = true;
+                                d.Networkdestroyed = true;
+                                return;
+                            }
+                            Timing.CallDelayed(0.5f, () => {
+                                d.Networklocked = true;
+                                d.locked = true;
+                            });
+                            if(plugin.unlockLater)
+                                Timing.CallDelayed(plugin.unlockAfter, () => {
+                                    d.Networklocked = false;
+                                    d.locked = false;
+                                });
+                        }
+                    } else {
+                        if(plugin.neededBroadcastDuration <= 0) {
+                            ev.Player.ClearBroadcasts();
+                            ev.Player.Broadcast(plugin.neededBroadcastDuration, plugin.neededBroadcast.Replace("%amount", $"{plugin.amountNeeded - amount}"));
+                        }
                     }
                 }
             } catch(Exception e) {
@@ -49,25 +75,25 @@ namespace ZombieDoorBreaking {
                     ev.Allow = false;
                     if(!checkPermission(ev, sender, "command"))
                         return;
-                    if(args.Length == 1) {
-                        ev.Sender.RAMessage("Try using \"zdb <toggle/reload>\"");
-                        return;
+                    if(args.Length > 1) {
+                        if(args[1].EqualsIgnoreCase("toggle")) {
+                            plugin.IsEnabled = !plugin.IsEnabled;
+                            if(plugin.IsEnabled)
+                                plugin.Register();
+                            else
+                                plugin.Unregister();
+                            Plugin.Config.SetString("zdb_toggle", plugin.IsEnabled.ToString());
+                            plugin.ReloadConfig();
+                            ev.Sender.RAMessage("zdb_toggle has now been set to: " + plugin.IsEnabled.ToString());
+                            return;
+                        } else if(args[1].EqualsIgnoreCase("reload")) {
+                            plugin.ReloadConfig();
+                            ev.Sender.RAMessage("<color=green>Configuration values have been reloaded.</color>");
+                            return;
+                        }
                     }
-                    if(args[1].EqualsIgnoreCase("toggle")) {
-                        plugin.IsEnabled = !plugin.IsEnabled;
-                        if(plugin.IsEnabled)
-                            plugin.Register();
-                        else
-                            plugin.Unregister();
-                        Plugin.Config.SetString("zdb_toggle", plugin.IsEnabled.ToString());
-                        plugin.ReloadConfig();
-                        ev.Sender.RAMessage("zdb_toggle has now been set to: " + plugin.IsEnabled.ToString());
-                        return;
-                    } else if(args[1].EqualsIgnoreCase("reload")) {
-                        plugin.ReloadConfig();
-                        ev.Sender.RAMessage("<color=green>Configuration values have been reloaded.</color>");
-                        return;
-                    }
+                    ev.Sender.RAMessage("Try using \"zdb <toggle/reload>\"");
+                    return;
                 }
                 return;
             } catch(Exception e) {
