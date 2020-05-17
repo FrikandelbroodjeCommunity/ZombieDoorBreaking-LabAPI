@@ -22,14 +22,17 @@ namespace ZombieDoorBreaking {
         }
         public void DoorInteract(ref DoorInteractionEvent ev) {
             try {
-                if(ev.Player.GetRole() == RoleType.Scp0492 && ev.Door.doorType == 2 && !ev.Door.NetworkisOpen) {
+                if(ev.Player.GetRole() == RoleType.Scp0492 && ev.Door.doorType == 2) {
+                    if(plugin.breakDoor && ev.Door.NetworkisOpen)
+                        return;
                     int amount = 0;
                     foreach(ReferenceHub hub in Player.GetHubs(RoleType.Scp0492))
                         if(Vector3.Distance(ev.Player.GetPosition(), hub.GetPosition()) <= plugin.distanceNeeded)
                             amount++;
-
-                    if(amount >= plugin.amountNeeded)
+                    if(amount >= plugin.amountNeeded) {
                         ev.Allow = true;
+                        ev.Door.DestroyDoor(plugin.breakDoor);
+                    }
                 }
             } catch(Exception e) {
                 Log.Error("ZDB DoorInteract error: " + e.StackTrace);

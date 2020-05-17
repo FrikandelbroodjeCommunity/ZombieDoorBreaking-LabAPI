@@ -8,7 +8,7 @@ namespace ZombieDoorBreaking {
 
         public EventHandlers EventHandlers;
 
-        public bool IsEnabled;
+        public bool IsEnabled, breakDoor;
         public int amountNeeded;
         public float distanceNeeded;
 
@@ -49,6 +49,7 @@ namespace ZombieDoorBreaking {
         public void ReloadConfig() {
             Config.Reload();
             IsEnabled = Config.GetBool("zdb_enabled", true);
+            breakDoor = Config.GetBool("zdb_lock", true);
             amountNeeded = Config.GetInt("zdb_amount", 4);
             distanceNeeded = Config.GetFloat("zdb_distance", 4f);
         }
