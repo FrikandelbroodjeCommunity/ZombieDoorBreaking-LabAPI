@@ -1,8 +1,11 @@
 #Toggles whether the plugin is enabled or not
 zdb_toggle: true
+
 #How many SCP-049-2 are needed to open a door (counting the one opening the door too!)
 zdb_amount: 4
 #Distance needed to count the SCP-049-2 a part of the group
 zdb_distance: 4
-#Should the door be destroyed (locked in most cases)?
-zdb_lock: true
+
+zdb_forcedestroy: false
+zdb_unlock: true
+zdb_unlock_after: 6
