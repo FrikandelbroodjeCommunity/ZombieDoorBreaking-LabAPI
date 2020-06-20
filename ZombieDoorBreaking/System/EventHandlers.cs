@@ -25,16 +25,15 @@ namespace ZombieDoorBreaking {
             try {
                 if(ev.Player.GetRole() == RoleType.Scp0492 && ev.Door.doorType == 2 && !ev.Door.Networklocked) {
                     if((!plugin.canClose && ev.Door.NetworkisOpen) 
-                        || (plugin.griefProtection && (ev.Door.DoorName.EqualsIgnoreCase("106_PRIMARY") 
-                        || ev.Door.DoorName.EqualsIgnoreCase("106_SECONDARY") || ev.Door.DoorName.EqualsIgnoreCase("106_BOTTOM"))))
+                        || (plugin.griefProtection && ev.Door.DoorName.StartsWith("106")) )
                         return;
                     int amount = 0;
+                    Door d = ev.Door;
                     foreach(ReferenceHub hub in Player.GetHubs(RoleType.Scp0492))
-                        if(Vector3.Distance(ev.Player.GetPosition(), hub.GetPosition()) <= plugin.distanceNeeded) {
+                        if(Vector3.Distance(d.transform.position, hub.GetPosition()) <= plugin.distanceNeeded) {
                             amount++;
                         }
                     if(amount >= plugin.amountNeeded) {
-                        Door d = ev.Door;
                         ev.Allow = true;
                         if(plugin.currentMode != Mode.OPEN && !ev.Door.NetworkisOpen && plugin.canClose) {
                             d.DestroyDoor(plugin.currentMode == Mode.LOCK_BREAK);
@@ -56,7 +55,7 @@ namespace ZombieDoorBreaking {
                     } else {
                         if(plugin.neededBroadcastDuration <= 0) {
                             ev.Player.ClearBroadcasts();
-                            ev.Player.Broadcast(plugin.neededBroadcastDuration, plugin.neededBroadcast.Replace("%amount", $"{plugin.amountNeeded - amount}"));
+                            ev.Player.Broadcast(plugin.neededBroadcastDuration, plugin.neededBroadcast.Replace("%amount", $"{plugin.amountNeeded - amount}"), false);
                         }
                     }
                 }
@@ -71,12 +70,14 @@ namespace ZombieDoorBreaking {
                 if(ev.Command.Contains("REQUEST_DATA PLAYER_LIST SILENT")) return;
                 string[] args = ev.Command.ToLower().Split(' ');
                 ReferenceHub sender = ev.Sender.SenderId == "SERVER CONSOLE" || ev.Sender.SenderId == "GAME CONSOLE" ? Player.GetPlayer(PlayerManager.localPlayer) : Player.GetPlayer(ev.Sender.SenderId);
-                if(args[0].EqualsIgnoreCase("zdb")) {
+                if(args[0] == "zdb") {
                     ev.Allow = false;
-                    if(!CheckPermission(ev, sender, "command"))
+                    if(!sender.CheckPermission("command")) {
+                        ev.Sender.RAMessage("<color=red>Access denied.</color>");
                         return;
+                    }
                     if(args.Length > 1) {
-                        if(args[1].EqualsIgnoreCase("toggle")) {
+                        if(args[1] == "toggle") {
                             plugin.IsEnabled = !plugin.IsEnabled;
                             if(plugin.IsEnabled)
                                 plugin.Register();
@@ -86,7 +87,7 @@ namespace ZombieDoorBreaking {
                             plugin.ReloadConfig();
                             ev.Sender.RAMessage("zdb_toggle has now been set to: " + plugin.IsEnabled.ToString());
                             return;
-                        } else if(args[1].EqualsIgnoreCase("reload")) {
+                        } else if(args[1] == "reload") {
                             plugin.ReloadConfig();
                             ev.Sender.RAMessage("<color=green>Configuration values have been reloaded.</color>");
                             return;
@@ -101,13 +102,5 @@ namespace ZombieDoorBreaking {
             }
         }
         #endregion
-
-        public bool CheckPermission( RACommandEvent ev, ReferenceHub sender, string perm ) {
-            if(!sender.CheckPermission("zdb.*") || !sender.CheckPermission("zdb." + perm)) {
-                ev.Sender.RAMessage("<color=red>Access denied.</color>");
-                return false;
-            }
-            return true;
-        }
     }
 }
