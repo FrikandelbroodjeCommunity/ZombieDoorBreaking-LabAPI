@@ -50,23 +50,23 @@ namespace ZombieDoorBreaking {
         public override void OnReload() {
         }
 
-        private Mode GetMode() {
-            Enum.TryParse(Config.GetString("zdb_mode", "lock"), true, out Mode mode);
-            return mode;
-        }
-
         public void ReloadConfig() {
             Config.Reload();
             IsEnabled = Config.GetBool("zdb_enabled", true);
             unlockLater = Config.GetBool("zdb_unlock", true);
             unlockAfter = Config.GetFloat("zdb_unlock_after", 4f);
             canClose = Config.GetBool("zdb_canclose", true);
-            currentMode = GetMode();
+            try {
+                currentMode = (Mode) Enum.Parse(typeof(Mode), Config.GetString("zdb_mode", "LOCK"));
+            } catch(Exception) {
+                currentMode = Mode.LOCK;
+                Log.Warn("Failed to parse ZBD_MODE, using default mode: Lock");
+            }
             amountNeeded = Config.GetInt("zdb_amount", 4);
             distanceNeeded = Config.GetFloat("zdb_distance", 4f);
             forceDestroy = Config.GetBool("zdb_forcedestroy", false) && currentMode == Mode.LOCK_BREAK;
             griefProtection = Config.GetBool("zdb_griefprotection", true);
-            neededBroadcast = Config.GetString("zdb_broadcast_text", $"<color=red>Necesitas a %amount SCP-049-2 más para abrir la puerta.</color>");
+            neededBroadcast = Config.GetString("zdb_broadcast_text", $"<color=red>You need at least %amount SCP-049-2 more to open this door.</color>");
             neededBroadcastDuration = Config.GetUInt("zdb_broadcast_duration", 4);
         }
 

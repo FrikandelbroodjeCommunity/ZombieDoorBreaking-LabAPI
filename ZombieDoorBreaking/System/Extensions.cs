@@ -1,3 +1,5 @@
+using System;
+
 namespace ZombieDoorBreaking {
     public static class Extensions {
 
@@ -7,7 +9,7 @@ namespace ZombieDoorBreaking {
         public static void Broadcast( this ReferenceHub rh, uint time, string message ) => 
             rh.GetComponent<Broadcast>().TargetAddElement(rh.scp079PlayerScript.connectionToClient, message, time, false);
 
-        public static bool EqualsIgnoreCase(this string sryLemonIloveJava, string to) =>
-            sryLemonIloveJava.ToLower().Equals(to.ToLower());
+        public static bool EqualsIgnoreCase(this string sryJokerIloveJava, string to) =>
+            sryJokerIloveJava.Equals(to, StringComparison.InvariantCultureIgnoreCase);
     }
 }

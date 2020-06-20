@@ -73,7 +73,7 @@ namespace ZombieDoorBreaking {
                 ReferenceHub sender = ev.Sender.SenderId == "SERVER CONSOLE" || ev.Sender.SenderId == "GAME CONSOLE" ? Player.GetPlayer(PlayerManager.localPlayer) : Player.GetPlayer(ev.Sender.SenderId);
                 if(args[0].EqualsIgnoreCase("zdb")) {
                     ev.Allow = false;
-                    if(!checkPermission(ev, sender, "command"))
+                    if(!CheckPermission(ev, sender, "command"))
                         return;
                     if(args.Length > 1) {
                         if(args[1].EqualsIgnoreCase("toggle")) {
@@ -102,7 +102,7 @@ namespace ZombieDoorBreaking {
         }
         #endregion
 
-        public bool checkPermission( RACommandEvent ev, ReferenceHub sender, string perm ) {
+        public bool CheckPermission( RACommandEvent ev, ReferenceHub sender, string perm ) {
             if(!sender.CheckPermission("zdb.*") || !sender.CheckPermission("zdb." + perm)) {
                 ev.Sender.RAMessage("<color=red>Access denied.</color>");
                 return false;
