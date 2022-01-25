@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <ProjectView>ProjectFiles</ProjectView>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ReferencePath>C:\Users\user\Documents\References\;C:\Users\user\Documents\References\Plugins\;C:\Users\user\Documents\References\Plugins\dependencies\;C:\Users\user\Documents\References\EXILED\;C:\Users\user\Desktop\2020\Servidores\SCP\SCPSL_Data\Managed\</ReferencePath>
-  </PropertyGroup>
-</Project>
