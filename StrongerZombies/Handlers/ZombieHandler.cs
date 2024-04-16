@@ -4,8 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Exiled.API.Interfaces;
 using Exiled.API.Features;
-using Exiled.Events.EventArgs;
+using Exiled.Events.EventArgs.Player;
+using Exiled.Events.EventArgs.Server;
+using PlayerRoles;
+using Exiled.API.Features.Doors;
 
 using Interactables.Interobjects;
 using Interactables.Interobjects.DoorUtils;
@@ -19,6 +23,8 @@ namespace StrongerZombies.Handlers
     public class ZombieHandler
     {
         public ZombieHandler(StrongerZombies instance) => core = instance;
+        public string ZombiesNeededBroadcast = string.Empty;
+        public string OnCooldownBroadcast = string.Empty;
 
         public void Subscribe()
         {
@@ -51,20 +57,31 @@ namespace StrongerZombies.Handlers
 
         private void DoorInteract(InteractingDoorEventArgs ev)
         {
-            if (roundEnded || ev.Player.Role != RoleType.Scp0492 || ev.Door.IsLocked || rateLimit > Time.time
-                || ev.Door.RequiredPermissions.RequiredPermissions.HasFlagFast(KeycardPermissions.ScpOverride))
+            if (roundEnded || ev.Player.Role != RoleTypeId.Scp0492
+                || ev.Door.RequiredPermissions.RequiredPermissions.HasFlagFast(KeycardPermissions.ScpOverride)
+                || !ev.Door.IsKeycardDoor || ev.Door.IsLocked || ev.Door.IsOpen || rateLimit > Time.time)
+            {
+                Log.Debug("Cannot Break Door: Not a Zombie, Door Is Locked, Door is a Normal Hall Door, Rate Limit, Checkpoint Door, Door is Open");
                 return;
+            }
 
             if (ev.Player.TryGetSessionVariable(CooldownTag, out float cd) && cd > Time.time)
             {
-                ev.Player.Broadcast(core.Config.OnCooldown);
+                if (!string.IsNullOrEmpty(core.Config.OnCooldownText))
+                {
+                    OnCooldownBroadcast = core.Config.OnCooldownText;
+                    ev.Player.Broadcast(new Exiled.API.Features.Broadcast(OnCooldownBroadcast, core.Config.DisplayDuration));
+                }
+                else
+                    Log.Debug("String is empty");
+                Log.Debug("Cannot Break Door: Cooldown Config");
                 return;
             }
 
             int acceptedCount = 0;
             foreach (var player in Player.List)
             {
-                if (player.Role != RoleType.Scp0492)
+                if (player.Role != RoleTypeId.Scp0492)
                     continue;
 
                 if ((player.Position - ev.Player.Position).sqrMagnitude < core.Config.MaxDistance)
@@ -75,32 +92,44 @@ namespace StrongerZombies.Handlers
                 }
             }
 
-            if (core.Config.ZombiesNeeded < acceptedCount)
+            if (core.Config.ZombiesNeeded - 1 >= acceptedCount)
             {
                 rateLimit = Time.time + core.Config.RateLimit;
-
-                ev.Player.Broadcast(core.Config.NotEnoughZombies);
+                if (!string.IsNullOrEmpty(core.Config.NotEnoughZombiesText))
+                {
+                    ZombiesNeededBroadcast = core.Config.NotEnoughZombiesText;
+                    ZombiesNeededBroadcast = ZombiesNeededBroadcast.Replace("{zombiecount}", core.Config.ZombiesNeeded.ToString());
+                    ev.Player.Broadcast(new Exiled.API.Features.Broadcast(ZombiesNeededBroadcast, core.Config.DisplayDuration));
+                }
+                else
+                    Log.Debug("String is empty");
+                Log.Debug("Cannot Break Door: Not Enough Zombies Config");
+                Log.Debug("Zombies Required:" + core.Config.ZombiesNeeded.ToString());
                 return;
             }
 
             ev.IsAllowed = false;
 
-            if (ev.Door.Base is PryableDoor pryableDoor)
+            if (ev.Door is Gate pryableDoor)
             {
-                pryableDoor.TryPryGate();
+                pryableDoor.TryPry();
+                Log.Debug("Opening Gate");
             }
-            else if (ev.Door.Base is IDamageableDoor damageableDoor)
+            else if (ev.Door is Exiled.API.Interfaces.IDamageableDoor damageableDoor)
             {
                 switch (core.Config.BreakableDoorModifier)
                 {
                     case DoorModifier.Break:
-                        damageableDoor.ServerDamage(ev.Door.Health, DoorDamageType.Scp096);
+                        damageableDoor.Damage(damageableDoor.Health, DoorDamageType.ServerCommand);
+                        Log.Debug("Destroying Door");
                         break;
                     case DoorModifier.OpenThenLock:
                         Open(ev.Door, true);
+                        Log.Debug("Opening & Locking Door");
                         break;
                     case DoorModifier.Open:
                         Open(ev.Door);
+                        Log.Debug("Opening Door");
                         break;
                 }
             }
@@ -124,8 +153,11 @@ namespace StrongerZombies.Handlers
 
             door.ChangeLock(Exiled.API.Enums.DoorLockType.Regular079);
 
-            if(core.Config.UnlockAfterSeconds > 0)
+            if (core.Config.UnlockAfterSeconds > 0)
+            {
                 coroutines.Add(Timing.CallDelayed(core.Config.UnlockAfterSeconds, () => door.Unlock()));
+                Log.Debug("Adding coroutine for Unlocking Doors after Opening and Locking Door");
+            }
         }
 
         private const string OnCdTag = "sz_oncd";

@@ -15,10 +15,10 @@ namespace StrongerZombies
     public class StrongerZombies : Plugin<BalanceSettings>
     {
         public override string Name { get; } = "StrongerZombies";
-        public override string Author { get; } = "Beryl";
+        public override string Author { get; } = "Beryl, Vicious Vikki";
         public override string Prefix { get; } = "strongerzombies";
-        public override Version Version { get; } = new Version(2, 0, 0);
-        public override Version RequiredExiledVersion => new Version(4, 2, 3);
+        public override Version Version { get; } = new Version(2, 1, 0);
+        public override Version RequiredExiledVersion => new Version(8, 8, 1);
 
         private ZombieHandler handlers;
 
