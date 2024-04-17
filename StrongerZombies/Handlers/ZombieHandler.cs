@@ -69,11 +69,13 @@ namespace StrongerZombies.Handlers
             {
                 if (!string.IsNullOrEmpty(core.Config.OnCooldownText))
                 {
+                    Log.Debug("Getting ability on cooldown string");
                     OnCooldownBroadcast = core.Config.OnCooldownText;
+                    Log.Debug("Showing ability on cooldown broadcast to player(s)");
                     ev.Player.Broadcast(new Exiled.API.Features.Broadcast(OnCooldownBroadcast, core.Config.DisplayDuration));
                 }
                 else
-                    Log.Debug("String is empty");
+                    Log.Debug("Ability Cooldown String is empty");
                 Log.Debug("Cannot Break Door: Cooldown Config");
                 return;
             }
@@ -97,12 +99,14 @@ namespace StrongerZombies.Handlers
                 rateLimit = Time.time + core.Config.RateLimit;
                 if (!string.IsNullOrEmpty(core.Config.NotEnoughZombiesText))
                 {
+                    Log.Debug("Getting Not Enough Zombies String, replacing {zombiecount} if present");
                     ZombiesNeededBroadcast = core.Config.NotEnoughZombiesText;
                     ZombiesNeededBroadcast = ZombiesNeededBroadcast.Replace("{zombiecount}", core.Config.ZombiesNeeded.ToString());
+                    Log.Debug("Showing Not Enough Zombies broadcast to player(s)");
                     ev.Player.Broadcast(new Exiled.API.Features.Broadcast(ZombiesNeededBroadcast, core.Config.DisplayDuration));
                 }
                 else
-                    Log.Debug("String is empty");
+                    Log.Debug("Zombie Required String is empty");
                 Log.Debug("Cannot Break Door: Not Enough Zombies Config");
                 Log.Debug("Zombies Required:" + core.Config.ZombiesNeeded.ToString());
                 return;
