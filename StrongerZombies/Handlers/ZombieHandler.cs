@@ -116,8 +116,21 @@ namespace StrongerZombies.Handlers
 
             if (ev.Door is Gate pryableDoor)
             {
-                pryableDoor.TryPry();
-                Log.Debug("Opening Gate");
+                switch (core.Config.PryableGateModifier)
+                {
+                    case GateModifier.Pry:
+                        pryableDoor.TryPry();
+                        Log.Debug("Prying Gate Open");
+                        break;
+                    case GateModifier.OpenThenLock:
+                        Open(ev.Door, true);
+                        Log.Debug("Opening and Locking Gate");
+                        break;
+                    case GateModifier.Open:
+                        Open(ev.Door);
+                        Log.Debug("Opening Gate");
+                        break;
+                }
             }
             else if (ev.Door is Exiled.API.Interfaces.IDamageableDoor damageableDoor)
             {
@@ -155,7 +168,7 @@ namespace StrongerZombies.Handlers
             if (!shouldLock)
                 return;
 
-            door.ChangeLock(Exiled.API.Enums.DoorLockType.Regular079);
+            door.ChangeLock(Exiled.API.Enums.DoorLockType.AdminCommand);
 
             if (core.Config.UnlockAfterSeconds > 0)
             {
@@ -176,6 +189,10 @@ namespace StrongerZombies.Handlers
         public enum DoorModifier
         {
             OpenThenLock, Break, Open
+        }
+        public enum GateModifier
+        {
+            Pry, OpenThenLock, Open
         }
     }
 }

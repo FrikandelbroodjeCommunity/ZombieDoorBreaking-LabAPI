@@ -17,6 +17,9 @@ namespace StrongerZombies
         [Description("Sets the Door Open Modifier, Default is OpenThenLock, there is also Open and Break")]
         public DoorModifier BreakableDoorModifier { get; set; } = DoorModifier.OpenThenLock;
 
+        [Description("Sets the Gate Open Modifier, Default is Pry, there is also Open, OpenThenLock")]
+        public GateModifier PryableGateModifier { get; set; } = GateModifier.Pry;
+
         [Description("Set the required amount of Zombies to Open/Break the door")]
         public int ZombiesNeeded { get; set; } = 5;
 
