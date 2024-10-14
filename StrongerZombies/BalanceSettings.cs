@@ -14,10 +14,10 @@ namespace StrongerZombies
         [Description("If the plugin should send out debug prints (There's a lot covering basically every case)")]
         public bool Debug { get; set; } = false;
 
-        [Description("Sets the Door Open Modifier, Default is OpenThenLock, there is also Open and Break")]
+        [Description("Sets the Door Open Modifier, Default is OpenThenLock, there is also Open, Break, and Nothing")]
         public DoorModifier BreakableDoorModifier { get; set; } = DoorModifier.OpenThenLock;
 
-        [Description("Sets the Gate Open Modifier, Default is Pry, there is also Open, OpenThenLock")]
+        [Description("Sets the Gate Open Modifier, Default is Pry, there is also Open, OpenThenLock, and Nothing")]
         public GateModifier PryableGateModifier { get; set; } = GateModifier.Pry;
 
         [Description("Set the required amount of Zombies to Open/Break the door")]

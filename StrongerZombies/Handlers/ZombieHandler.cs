@@ -130,6 +130,9 @@ namespace StrongerZombies.Handlers
                         Open(ev.Door);
                         Log.Debug("Opening Gate");
                         break;
+                    case GateModifier.Nothing:
+                        Log.Debug("Doing nothing as config is set to nothing");
+                        break;
                 }
             }
             else if (ev.Door is Exiled.API.Interfaces.IDamageableDoor damageableDoor)
@@ -147,6 +150,9 @@ namespace StrongerZombies.Handlers
                     case DoorModifier.Open:
                         Open(ev.Door);
                         Log.Debug("Opening Door");
+                        break;
+                    case DoorModifier.Nothing:
+                        Log.Debug("Doing nothing as config is set to nothing");
                         break;
                 }
             }
@@ -188,11 +194,11 @@ namespace StrongerZombies.Handlers
 
         public enum DoorModifier
         {
-            OpenThenLock, Break, Open
+            OpenThenLock, Break, Open, Nothing
         }
         public enum GateModifier
         {
-            Pry, OpenThenLock, Open
+            Pry, OpenThenLock, Open, Nothing
         }
     }
 }
