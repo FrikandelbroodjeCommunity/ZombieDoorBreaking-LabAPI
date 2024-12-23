@@ -17,8 +17,8 @@ namespace StrongerZombies
         public override string Name { get; } = "StrongerZombies";
         public override string Author { get; } = "Beryl, Vicious Vikki";
         public override string Prefix { get; } = "strongerzombies";
-        public override Version Version { get; } = new Version(2, 1, 2);
-        public override Version RequiredExiledVersion => new Version(8, 8, 1);
+        public override Version Version { get; } = new Version(2, 1, 3);
+        public override Version RequiredExiledVersion => new Version(9, 0, 1);
 
         private ZombieHandler handlers;
 
