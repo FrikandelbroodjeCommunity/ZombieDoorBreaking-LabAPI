@@ -1,12 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
-using Exiled.API.Enums;
 using Exiled.API.Features;
-using Exiled.Events;
-
-using MEC;
 
 using StrongerZombies.Handlers;
 
@@ -20,21 +14,21 @@ namespace StrongerZombies
         public override Version Version { get; } = new Version(2, 1, 3);
         public override Version RequiredExiledVersion => new Version(9, 0, 1);
 
-        private ZombieHandler handlers;
+        private ZombieHandler _handlers;
 
         public override void OnEnabled()
         {
             Log.Debug("Initializing any event handlers...");
-            handlers = new ZombieHandler(this);
+            _handlers = new ZombieHandler(this);
 
-            handlers.Subscribe();
+            _handlers.Subscribe();
         }
 
         public override void OnDisabled()
         {
-            handlers.Unsubscribe();
+            _handlers.Unsubscribe();
 
-            handlers = null;
+            _handlers = null;
         }
     }
 }
