@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-
+using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
@@ -52,7 +52,7 @@ namespace StrongerZombies.Handlers
         private void DoorInteract(InteractingDoorEventArgs ev)
         {
             if (_roundEnded || ev.Player.Role != RoleTypeId.Scp0492
-                || ev.Door.RequiredPermissions.RequiredPermissions.HasFlagFast(KeycardPermissions.ScpOverride)
+                || ev.Door.RequiredPermissions.HasFlag(DoorPermissionFlags.ScpOverride)
                 || !ev.Door.IsKeycardDoor || ev.Door.IsLocked || ev.Door.IsOpen || _rateLimit > Time.time)
             {
                 Log.Debug("Cannot Break Door: Not a Zombie, Door Is Locked, Door is a Normal Hall Door, Rate Limit, Checkpoint Door, Door is Open");
