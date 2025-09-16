@@ -14,16 +14,10 @@ namespace StrongerZombies.Handlers;
 
 public static class ZombieHandler
 {
-    private const string OnCdTag = "sz_oncd";
-    private const string CooldownTag = "sz_cd";
-
     private static readonly Dictionary<Player, float> Cooldown = new();
     private static readonly List<CoroutineHandle> Coroutines = new();
 
-    public static BalanceSettings Config => StrongerZombies.Instance.Config ?? new BalanceSettings();
-
-    private static string _zombiesNeededBroadcast = string.Empty;
-    private static string _onCooldownBroadcast = string.Empty;
+    private static BalanceSettings Config => StrongerZombies.Instance.Config ?? new BalanceSettings();
 
     private static float _rateLimit;
     private static bool _roundEnded;
@@ -74,7 +68,7 @@ public static class ZombieHandler
 
         if (Cooldown.TryGetValue(ev.Player, out var cd) && cd > Time.time)
         {
-            ev.Player.SendHint(string.Format(Config.OnCooldownText, Config.DisplayDuration), 7);
+            ev.Player.SendHint(Config.OnCooldownText, Config.DisplayDuration);
             Logger.Debug("Cannot Break Door: Cooldown", Config.Debug);
             return;
         }
@@ -88,7 +82,8 @@ public static class ZombieHandler
         if (Config.ZombiesNeeded > nearbyZombies.Length)
         {
             _rateLimit = Time.time + Config.RateLimit;
-            ev.Player.SendHint(string.Format(Config.NotEnoughZombiesText, Config.ZombiesNeeded));
+            ev.Player.SendHint(string.Format(Config.NotEnoughZombiesText, Config.ZombiesNeeded),
+                Config.DisplayDuration);
             Logger.Debug("Cannot Break Door: Not Enough Zombies", Config.Debug);
             return;
         }
@@ -141,7 +136,7 @@ public static class ZombieHandler
         var newCooldown = Time.time + Config.AbilityCooldown;
         foreach (var player in nearbyZombies)
         {
-            player.SendHint(Config.OnBreakDoorText, 7);
+            player.SendHint(Config.OnBreakDoorText, Config.DisplayDuration);
             Cooldown[player] = newCooldown;
         }
     }

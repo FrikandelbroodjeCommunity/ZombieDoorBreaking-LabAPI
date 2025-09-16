@@ -21,7 +21,7 @@ public class BalanceSettings
     public float AbilityCooldown { get; set; } = 24f;
 
     [Description("The distance you need to be to the door to open/break it")]
-    public float MaxDistance { get; set; } = 4.35f * 4.35f;
+    public float MaxDistance { get; set; } = 16;
 
     [Description("If the config for BreakbableDoorModifier is OpenThenLock, this gets how long the door should be locked for")]
     public float UnlockAfterSeconds { get; set; } = 3;
@@ -30,7 +30,7 @@ public class BalanceSettings
     public float RateLimit { get; set; } = 2.5f;
 
     [Description("Sets the duration that the broadcasts should be shown to users")]
-    public ushort DisplayDuration { get; set; } = 5;
+    public ushort DisplayDuration { get; set; } = 7;
 
     [Description("Sets the text that will be shown to the users if there is not enough zombies to open/break the door")]
     public string NotEnoughZombiesText { get; set; } = "<color=red>There is not enough zombies for this ability! You need {0} zombies to open this door</color>";
