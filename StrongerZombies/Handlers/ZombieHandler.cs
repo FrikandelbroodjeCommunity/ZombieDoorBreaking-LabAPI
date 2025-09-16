@@ -1,198 +1,166 @@
 ﻿using System.Collections.Generic;
-using Exiled.API.Enums;
-using Exiled.API.Features;
-using Exiled.Events.EventArgs.Player;
-using Exiled.Events.EventArgs.Server;
-using Exiled.API.Features.Doors;
+using System.Linq;
 using PlayerRoles;
-
 using Interactables.Interobjects.DoorUtils;
-
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.Handlers;
+using LabApi.Features.Wrappers;
 using MEC;
-
 using UnityEngine;
+using Logger = LabApi.Features.Console.Logger;
 
-namespace StrongerZombies.Handlers
+namespace StrongerZombies.Handlers;
+
+public static class ZombieHandler
 {
-    public class ZombieHandler
+    private const string OnCdTag = "sz_oncd";
+    private const string CooldownTag = "sz_cd";
+
+    private static readonly Dictionary<Player, float> Cooldown = new();
+    private static readonly List<CoroutineHandle> Coroutines = new();
+
+    public static BalanceSettings Config => StrongerZombies.Instance.Config ?? new BalanceSettings();
+
+    private static string _zombiesNeededBroadcast = string.Empty;
+    private static string _onCooldownBroadcast = string.Empty;
+
+    private static float _rateLimit;
+    private static bool _roundEnded;
+
+    public static void RegisterEvents()
     {
-        public ZombieHandler(StrongerZombies instance) => _core = instance;
-        private string _zombiesNeededBroadcast = string.Empty;
-        private string _onCooldownBroadcast = string.Empty;
+        ServerEvents.WaitingForPlayers += OnWaitingForPlayers;
+        ServerEvents.RoundEnded += OnRoundEnd;
+        PlayerEvents.InteractingDoor += DoorInteract;
+    }
 
-        public void Subscribe()
+    public static void UnregisterEvents()
+    {
+        ServerEvents.WaitingForPlayers -= OnWaitingForPlayers;
+        ServerEvents.RoundEnded -= OnRoundEnd;
+        PlayerEvents.InteractingDoor -= DoorInteract;
+    }
+
+    private static void OnWaitingForPlayers()
+    {
+        _roundEnded = false;
+        Cooldown.Clear();
+    }
+
+    private static void OnRoundEnd(RoundEndedEventArgs ev)
+    {
+        _roundEnded = true;
+
+        // We clear these on Round end as it's unpredictable whether Exiled will destroy any referenced objects before waiting for players.
+        foreach (var item in Coroutines)
         {
-            Exiled.Events.Handlers.Server.WaitingForPlayers += OnWaitingForPlayers;
-            Exiled.Events.Handlers.Player.InteractingDoor += DoorInteract;
-            Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnd;
+            Timing.KillCoroutines(item);
         }
 
-        public void Unsubscribe()
+        Coroutines.Clear();
+    }
+
+    private static void DoorInteract(PlayerInteractingDoorEventArgs ev)
+    {
+        if (_roundEnded || ev.Player.Role != RoleTypeId.Scp0492
+                        || ev.Door.Permissions.HasFlag(DoorPermissionFlags.ScpOverride)
+                        || ev.Door.Permissions == DoorPermissionFlags.None || ev.Door.IsLocked ||
+                        ev.Door.IsOpened || _rateLimit > Time.time)
         {
-            Exiled.Events.Handlers.Server.WaitingForPlayers -= OnWaitingForPlayers;
-            Exiled.Events.Handlers.Player.InteractingDoor -= DoorInteract;
-            Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnd;
+            Logger.Debug("Cannot break the door: No permission", Config.Debug);
+            return;
         }
 
-        private void OnWaitingForPlayers() => _roundEnded = false;
-
-        private void OnRoundEnd(RoundEndedEventArgs ev)
+        if (Cooldown.TryGetValue(ev.Player, out var cd) && cd > Time.time)
         {
-            _roundEnded = true;
-
-            // We clear these on Round end as it's unpredictable whether Exiled will destroy any referenced objects before waiting for players.
-            foreach (var item in _coroutines)
-            {
-                Timing.KillCoroutines(item);
-            }
-
-            _coroutines.Clear();
+            ev.Player.SendHint(string.Format(Config.OnCooldownText, Config.DisplayDuration), 7);
+            Logger.Debug("Cannot Break Door: Cooldown", Config.Debug);
+            return;
         }
 
-        private void DoorInteract(InteractingDoorEventArgs ev)
+        var nearbyZombies = Player.List
+            .Where(x => x.Role == RoleTypeId.Scp0492 &&
+                        (x.Position - ev.Door.Position).sqrMagnitude < Config.MaxDistance &&
+                        (!Cooldown.TryGetValue(x, out var cooldown) || cooldown <= Time.time))
+            .ToArray();
+
+        if (Config.ZombiesNeeded > nearbyZombies.Length)
         {
-            if (_roundEnded || ev.Player.Role != RoleTypeId.Scp0492
-                || ev.Door.RequiredPermissions.HasFlag(DoorPermissionFlags.ScpOverride)
-                || !ev.Door.IsKeycardDoor || ev.Door.IsLocked || ev.Door.IsOpen || _rateLimit > Time.time)
-            {
-                Log.Debug("Cannot Break Door: Not a Zombie, Door Is Locked, Door is a Normal Hall Door, Rate Limit, Checkpoint Door, Door is Open");
-                return;
-            }
+            _rateLimit = Time.time + Config.RateLimit;
+            ev.Player.SendHint(string.Format(Config.NotEnoughZombiesText, Config.ZombiesNeeded));
+            Logger.Debug("Cannot Break Door: Not Enough Zombies", Config.Debug);
+            return;
+        }
 
-            if (ev.Player.TryGetSessionVariable(CooldownTag, out float cd) && cd > Time.time)
-            {
-                if (!string.IsNullOrEmpty(_core.Config.OnCooldownText))
-                {
-                    Log.Debug("Getting ability on cooldown string");
-                    _onCooldownBroadcast = _core.Config.OnCooldownText;
-                    Log.Debug("Showing ability on cooldown broadcast to player(s)");
-                    ev.Player.Broadcast(new Exiled.API.Features.Broadcast(_onCooldownBroadcast, _core.Config.DisplayDuration));
-                }
-                else
-                    Log.Debug("Ability Cooldown String is empty");
-                Log.Debug("Cannot Break Door: Cooldown Config");
-                return;
-            }
+        ev.IsAllowed = false;
 
-            int acceptedCount = 0;
-            foreach (var player in Player.List)
+        if (ev.Door is Gate pryableDoor)
+        {
+            switch (Config.PryableGateModifier)
             {
-                if (player.Role != RoleTypeId.Scp0492)
-                    continue;
-
-                if ((player.Position - ev.Player.Position).sqrMagnitude < _core.Config.MaxDistance)
-                {
-                    // We store the player's ID so we can later give everyone a cooldown, not just the player who used it.
-                    player.SessionVariables[OnCdTag] = ev.Player.Id;
-                    acceptedCount++;
-                }
+                case GateModifier.Pry:
+                    pryableDoor.TryPry(ev.Player);
+                    Logger.Debug("Prying Gate Open");
+                    break;
+                case GateModifier.OpenThenLock:
+                    Open(ev.Door, true);
+                    Logger.Debug("Opening and Locking Gate");
+                    break;
+                case GateModifier.Open:
+                    Open(ev.Door);
+                    Logger.Debug("Opening Gate");
+                    break;
+                case GateModifier.Nothing:
+                    Logger.Debug("Doing nothing as config is set to nothing");
+                    break;
             }
-
-            if (_core.Config.ZombiesNeeded - 1 >= acceptedCount)
+        }
+        else if (ev.Door.Base is IDamageableDoor damageableDoor)
+        {
+            switch (Config.BreakableDoorModifier)
             {
-                _rateLimit = Time.time + _core.Config.RateLimit;
-                if (!string.IsNullOrEmpty(_core.Config.NotEnoughZombiesText))
-                {
-                    Log.Debug("Getting Not Enough Zombies String, replacing {zombiecount} if present");
-                    _zombiesNeededBroadcast = _core.Config.NotEnoughZombiesText;
-                    _zombiesNeededBroadcast = _zombiesNeededBroadcast.Replace("{zombiecount}", _core.Config.ZombiesNeeded.ToString());
-                    Log.Debug("Showing Not Enough Zombies broadcast to player(s)");
-                    ev.Player.Broadcast(new Exiled.API.Features.Broadcast(_zombiesNeededBroadcast, _core.Config.DisplayDuration));
-                }
-                else
-                    Log.Debug("Zombie Required String is empty");
-                Log.Debug("Cannot Break Door: Not Enough Zombies Config");
-                Log.Debug("Zombies Required:" + _core.Config.ZombiesNeeded);
-                return;
-            }
-            
-            ev.IsAllowed = false;
-
-            if (ev.Door is Gate pryableDoor)
-            {
-                switch (_core.Config.PryableGateModifier)
-                {
-                    case GateModifier.Pry:
-                        pryableDoor.TryPry(ev.Player);
-                        Log.Debug("Prying Gate Open");
-                        break;
-                    case GateModifier.OpenThenLock:
-                        Open(ev.Door, true);
-                        Log.Debug("Opening and Locking Gate");
-                        break;
-                    case GateModifier.Open:
-                        Open(ev.Door);
-                        Log.Debug("Opening Gate");
-                        break;
-                    case GateModifier.Nothing:
-                        Log.Debug("Doing nothing as config is set to nothing");
-                        break;
-                }
-            }
-            else if (ev.Door is Exiled.API.Interfaces.IDamageableDoor damageableDoor)
-            {
-                switch (_core.Config.BreakableDoorModifier)
-                {
-                    case DoorModifier.Break:
-                        damageableDoor.Damage(damageableDoor.Health);
-                        Log.Debug("Destroying Door");
-                        break;
-                    case DoorModifier.OpenThenLock:
-                        Open(ev.Door, true);
-                        Log.Debug("Opening & Locking Door");
-                        break;
-                    case DoorModifier.Open:
-                        Open(ev.Door);
-                        Log.Debug("Opening Door");
-                        break;
-                    case DoorModifier.Nothing:
-                        Log.Debug("Doing nothing as config is set to nothing");
-                        break;
-                }
-            }
-
-            foreach (var player in Player.List)
-            {
-                // Here we give the previously stored IDs to good use.
-                if (player.TryGetSessionVariable(OnCdTag, out int id) && id == ev.Player.Id)
-                {
-                    player.SessionVariables[CooldownTag] = Time.time + _core.Config.AbilityCooldown;
-                }
+                case DoorModifier.Break:
+                    damageableDoor.ServerDamage(damageableDoor.RemainingHealth + 1, DoorDamageType.ServerCommand);
+                    Logger.Debug("Destroying Door");
+                    break;
+                case DoorModifier.OpenThenLock:
+                    Open(ev.Door, true);
+                    Logger.Debug("Opening & Locking Door");
+                    break;
+                case DoorModifier.Open:
+                    Open(ev.Door);
+                    Logger.Debug("Opening Door");
+                    break;
+                case DoorModifier.Nothing:
+                    Logger.Debug("Doing nothing as config is set to nothing");
+                    break;
             }
         }
 
-        private void Open(Door door, bool shouldLock = false)
+        var newCooldown = Time.time + Config.AbilityCooldown;
+        foreach (var player in nearbyZombies)
         {
-            door.IsOpen = true;
-
-            if (!shouldLock)
-                return;
-
-            door.ChangeLock(Exiled.API.Enums.DoorLockType.AdminCommand);
-
-            if (_core.Config.UnlockAfterSeconds > 0)
-            {
-                _coroutines.Add(Timing.CallDelayed(_core.Config.UnlockAfterSeconds, door.Unlock));
-                Log.Debug("Adding coroutine for Unlocking Doors after Opening and Locking Door");
-            }
+            player.SendHint(Config.OnBreakDoorText, 7);
+            Cooldown[player] = newCooldown;
         }
+    }
 
-        private const string OnCdTag = "sz_oncd";
-        private const string CooldownTag = "sz_cd";
+    private static void Open(Door door, bool shouldLock = false)
+    {
+        door.IsOpened = true;
 
-        private readonly List<CoroutineHandle> _coroutines = new List<CoroutineHandle>();
-        private readonly StrongerZombies _core;
+        if (!shouldLock)
+            return;
 
-        private float _rateLimit;
-        private bool _roundEnded;
+        door.Lock(DoorLockReason.AdminCommand, true);
 
-        public enum DoorModifier
-        {
-            OpenThenLock, Break, Open, Nothing
-        }
-        public enum GateModifier
-        {
-            Pry, OpenThenLock, Open, Nothing
-        }
+        if (Config.UnlockAfterSeconds <= 0) return;
+
+        var routine = Timing.CallDelayed(Config.UnlockAfterSeconds,
+            () => { door.Lock(DoorLockReason.AdminCommand, false); });
+
+        Coroutines.Add(routine);
+        Logger.Debug("Adding coroutine for Unlocking Doors after Opening and Locking Door", Config.Debug);
     }
 }

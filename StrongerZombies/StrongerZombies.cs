@@ -1,34 +1,28 @@
-﻿using System;
-
-using Exiled.API.Features;
-
+﻿using LabApi.Features;
+using LabApi.Loader.Features.Plugins;
 using StrongerZombies.Handlers;
+using Version = System.Version;
 
-namespace StrongerZombies
+namespace StrongerZombies;
+
+public class StrongerZombies : Plugin<BalanceSettings>
 {
-    public class StrongerZombies : Plugin<BalanceSettings>
+    public override string Name => "StrongerZombies";
+    public override string Author => "Beryl, Vicious Vikki";
+    public override string Description => " Allows SCP-049-2 to open doors that would normally be locked to SCPs";
+    public override Version Version => new(1, 0, 0);
+    public override Version RequiredApiVersion => LabApiProperties.CurrentVersion;
+
+    public static StrongerZombies Instance { get; private set; }
+
+    public override void Enable()
     {
-        public override string Name { get; } = "StrongerZombies";
-        public override string Author { get; } = "Beryl, Vicious Vikki";
-        public override string Prefix { get; } = "strongerzombies";
-        public override Version Version { get; } = new Version(2, 2, 0);
-        public override Version RequiredExiledVersion => new Version(9, 6, 0);
+        Instance = this;
+        ZombieHandler.RegisterEvents();
+    }
 
-        private ZombieHandler _handlers;
-
-        public override void OnEnabled()
-        {
-            Log.Debug("Initializing any event handlers...");
-            _handlers = new ZombieHandler(this);
-
-            _handlers.Subscribe();
-        }
-
-        public override void OnDisabled()
-        {
-            _handlers.Unsubscribe();
-
-            _handlers = null;
-        }
+    public override void Disable()
+    {
+        ZombieHandler.UnregisterEvents();
     }
 }
