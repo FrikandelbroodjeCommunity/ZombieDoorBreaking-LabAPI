@@ -11,7 +11,7 @@ public class StrongerZombies : Plugin<BalanceSettings>
     public override string Author => "Beryl, Vicious Vikki";
     public override string Description => " Allows SCP-049-2 to open doors that would normally be locked to SCPs";
     public override Version Version => new(1, 0, 0);
-    public override Version RequiredApiVersion => LabApiProperties.CurrentVersion;
+    public override Version RequiredApiVersion => new(LabApiProperties.CompiledVersion);
 
     public static StrongerZombies Instance { get; private set; }
 
